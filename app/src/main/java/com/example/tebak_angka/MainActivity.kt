@@ -5,8 +5,8 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -29,44 +29,55 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+private const val MIN_NUMBER = 1
+private const val MAX_NUMBER = 100
+
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun GuessGameScreen() {
-    var secret by remember { mutableIntStateOf(Random.nextInt(0, 101)) }
+    var secret by remember { mutableIntStateOf(Random.nextInt(MIN_NUMBER, MAX_NUMBER + 1)) }
     var score by remember { mutableIntStateOf(100) }
+    var low by remember { mutableIntStateOf(MIN_NUMBER) }
+    var high by remember { mutableIntStateOf(MAX_NUMBER) }
     var input by remember { mutableStateOf("") }
-    var message by remember { mutableStateOf("Tebak angka antara 0 sampai 100") }
-    var shownNumbers by remember { mutableStateOf(listOf<Int>()) }
+    var message by remember { mutableStateOf("Tebak angka antara $MIN_NUMBER sampai $MAX_NUMBER") }
     var finished by remember { mutableStateOf(false) }
 
     fun resetGame() {
-        secret = Random.nextInt(0, 101)
+        secret = Random.nextInt(MIN_NUMBER, MAX_NUMBER + 1)
         score = 100
+        low = MIN_NUMBER
+        high = MAX_NUMBER
         input = ""
-        message = "Tebak angka antara 0 sampai 100"
-        shownNumbers = emptyList()
+        message = "Tebak angka antara $MIN_NUMBER sampai $MAX_NUMBER"
         finished = false
     }
 
     fun checkGuess() {
         val guess = input.toIntOrNull()
-        if (guess == null || guess !in 0..100) {
-            message = "Masukkan angka antara 0 sampai 100"
+        if (guess == null || guess !in low..high) {
+            message = "Masukkan angka dalam rentang $low sampai $high"
             return
         }
+
         if (guess == secret) {
             message = "Benar! Angkanya $secret. Skor akhir: $score"
-            shownNumbers = emptyList()
+            low = secret
+            high = secret
             finished = true
         } else {
             score -= 10
-            shownNumbers = (1..guess).toList()
+            if (guess > secret) {
+                high = guess          // sisi kanan menyempit
+                message = "Salah! Angka terlalu besar. Skor dikurangi 10"
+            } else {
+                low = guess           // sisi kiri menyempit
+                message = "Salah! Angka terlalu kecil. Skor dikurangi 10"
+            }
             if (score <= 0) {
                 score = 0
                 message = "Game over! Angka yang benar adalah $secret"
                 finished = true
-            } else {
-                message = "Salah! Skor dikurangi 10"
             }
         }
         input = ""
@@ -101,16 +112,14 @@ fun GuessGameScreen() {
             OutlinedButton(onClick = { resetGame() }) { Text("Main Lagi") }
         }
 
-        if (shownNumbers.isNotEmpty()) {
-            Spacer(Modifier.height(20.dp))
-            Text("Angka 1 sampai ${shownNumbers.last()}:")
-            Spacer(Modifier.height(8.dp))
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                verticalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                shownNumbers.forEach { Text("$it") }
-            }
+        Spacer(Modifier.height(20.dp))
+        Text("Angka $low sampai $high:")
+        Spacer(Modifier.height(8.dp))
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            (low..high).forEach { Text("$it") }
         }
     }
 }
